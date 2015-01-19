@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2015.1 (Build 422U)" ts="2015-01-19 10:52:34">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2015.1 (Build 422U)" ts="2015-01-19 14:42:58">
 <Class name="uh.dao.AbstractDAO">
 <Description>
 Абстрактный класс, описывающий CRUD-операции над сущностями в БД</Description>
 <Import>uh.dto.msg,uh.util</Import>
 <Super>%RegisteredObject</Super>
-<TimeChanged>63570,69967.059058</TimeChanged>
+<TimeChanged>63571,52892.676435</TimeChanged>
 <TimeCreated>63509,59691.73482</TimeCreated>
 
 <Method name="execute">
@@ -41,15 +41,15 @@
             set error=##class(%Exception.General).%New("Ошибка вызова метода - execute")            
             s sc=error.AsStatus()   
         }               
-        
+         //коммит транзакции
+        tcommit 
         //инициализация DTO-объекта
         set resultMsg=##class(ResultFactory).getResult(sc)  
     
         //если метод save вернул статус выполнения 0, выкидываем исключение с текстом ошибки
         throw:('resultMsg.success) ##class(%Exception.General).%New(resultMsg.message)
         
-         //коммит транзакции
-        tcommit 
+        
                                 
     }
     catch ex{
@@ -185,7 +185,7 @@
 Класс реализующий CRUD-операции над сущностью Users 
 TableName - uh.data.Users </Description>
 <Super>AbstractDAO</Super>
-<TimeChanged>63515,58228.320055</TimeChanged>
+<TimeChanged>63571,52852.82599</TimeChanged>
 <TimeCreated>63508,53563.838089</TimeCreated>
 
 <Method name="save">
@@ -205,6 +205,7 @@ TableName - uh.data.Users </Description>
     set user.dob=userDto.dob
     set user.email=userDto.email    
     set sc= user.%Save()
+    s ^SSS("sc")=sc
     quit sc
 ]]></Implementation>
 </Method>
@@ -587,7 +588,7 @@ Result DTO</Description>
 Класс, реализующий бизнес-логику при создании/редактировании/удалении/поиске записей в таблице Users</Description>
 <Import>uh.dto.msg,uh.dao</Import>
 <Super>uh.service.AbstractService</Super>
-<TimeChanged>63570,74330.249724</TimeChanged>
+<TimeChanged>63571,52830.004118</TimeChanged>
 <TimeCreated>63509,62506.146204</TimeCreated>
 
 <Method name="findAll">
