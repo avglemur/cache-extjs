@@ -1,0 +1,1293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-64) 2015.1 (Build 422U)" ts="2015-01-19 10:52:34">
+<Class name="uh.dao.AbstractDAO">
+<Description>
+Абстрактный класс, описывающий CRUD-операции над сущностями в БД</Description>
+<Import>uh.dto.msg,uh.util</Import>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63570,69967.059058</TimeChanged>
+<TimeCreated>63509,59691.73482</TimeCreated>
+
+<Method name="execute">
+<Description>
+Шаблонный метод для создания/удаления/редактирования конкретной записи в БД
+@param methodName {String} - valueList(PERSIST,MERGE,REMOVE)
+@param dto {Object}
+@return uh.dto.msg.Result {Object}</Description>
+<Final>1</Final>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>methodName,dto</FormalSpec>
+<Private>1</Private>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[
+    set sc=$$$OK
+    
+    //начало транзакции
+    tstart
+    
+    //создание результирующего DTO-объекта
+    set resultMsg =##class(Result).%New()
+    try{    
+        if (methodName="PERSIST"){
+            //вызов метода создания новой записи в БД 
+            set sc=..save(dto)          
+        }elseif(methodName="MERGE"){
+            //вызов метода редактирования записи в БД             
+            set sc=..update(dto)
+        }elseif(methodName="REMOVE"){
+            //вызов метода удаления записи с БД   
+            set sc=..delete(dto)            
+        }else{          
+            set error=##class(%Exception.General).%New("Ошибка вызова метода - execute")            
+            s sc=error.AsStatus()   
+        }               
+        
+        //инициализация DTO-объекта
+        set resultMsg=##class(ResultFactory).getResult(sc)  
+    
+        //если метод save вернул статус выполнения 0, выкидываем исключение с текстом ошибки
+        throw:('resultMsg.success) ##class(%Exception.General).%New(resultMsg.message)
+        
+         //коммит транзакции
+        tcommit 
+                                
+    }
+    catch ex{
+        //откат транзакции
+        trollback
+        
+        #dim ex as %Exception.AbstractException
+        
+        // запись сообщения об ошибке в глобал
+        do ##class(Log).debug(ex)               
+    }
+    //выход с метода
+    quit resultMsg
+]]></Implementation>
+</Method>
+
+<Method name="persist">
+<Description>
+Метод создания новой записи в БД
+@param dto {Object}
+@return uh.dto.msg.Result {Object}</Description>
+<Final>1</Final>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[    quit ..execute("PERSIST",dto)
+]]></Implementation>
+</Method>
+
+<Method name="merge">
+<Description>
+Метод редактирования записи в БД
+@param dto {Object}
+@return uh.dto.msg.Result {Object}</Description>
+<Final>1</Final>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[    quit ..execute("MERGE",dto)
+]]></Implementation>
+</Method>
+
+<Method name="remove">
+<Description>
+Метод удаления записи с БД
+@param dto {Object}
+@return uh.dto.msg.Result {Object}</Description>
+<Final>1</Final>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[    quit ..execute("REMOVE",dto)
+]]></Implementation>
+</Method>
+
+<Method name="findAll">
+<Description>
+Метод поиска записей в БД
+@param dto {Object}
+@return uh.dto.msg.Result {Object}</Description>
+<Final>1</Final>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pagination:uh.util.query.dto.Pagination</FormalSpec>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[
+    tstart
+    set resultMsg =##class(Result).%New()
+    try{    
+        //вызов метода поиска записей в БД    
+        set sql=..getAllRecord()
+        tcommit 
+        set resultMsg=##class(ResultFactory).getResultList(sql,pagination)                                      
+    }
+    catch ex{
+        trollback
+        #dim ex as %Exception.AbstractException
+        do ##class(Log).debug(ex)       
+    }
+    quit resultMsg
+]]></Implementation>
+</Method>
+
+<Method name="save">
+<Description>
+Реализация метода создания новой записи в БД
+МЕТОД ДОЛЖЕН БЫТЬ ПЕРЕОПРЕДЕЛЕН ДЛЯ КАЖДОЙ КОНКРЕТНОЙ СУЩНОСТИ
+@param dto {Object}
+@return %Status {Object}    </Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>%Status</ReturnType>
+</Method>
+
+<Method name="update">
+<Description>
+Реализация метода редактирования записи в БД
+МЕТОД ДОЛЖЕН БЫТЬ ПЕРЕОПРЕДЕЛЕН ДЛЯ КАЖДОЙ КОНКРЕТНОЙ СУЩНОСТИ
+@param dto {Object}
+@return %Status {Object}</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>Result</ReturnType>
+</Method>
+
+<Method name="delete">
+<Description>
+Реализация метода удаления записи с БД
+МЕТОД ДОЛЖЕН БЫТЬ ПЕРЕОПРЕДЕЛЕН ДЛЯ КАЖДОЙ КОНКРЕТНОЙ СУЩНОСТИ
+@param dto {Object}
+@return %Status {Object}</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>Result</ReturnType>
+</Method>
+
+<Method name="getAllRecord">
+<Description>
+Реализация метода поиска записей в БД
+МЕТОД ДОЛЖЕН БЫТЬ ПЕРЕОПРЕДЕЛЕН ДЛЯ КАЖДОЙ КОНКРЕТНОЙ СУЩНОСТИ
+@return {String} - sql выражение</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+</Method>
+</Class>
+
+
+<Class name="uh.dao.UserDAO">
+<Description>
+Класс реализующий CRUD-операции над сущностью Users 
+TableName - uh.data.Users </Description>
+<Super>AbstractDAO</Super>
+<TimeChanged>63515,58228.320055</TimeChanged>
+<TimeCreated>63508,53563.838089</TimeCreated>
+
+<Method name="save">
+<Description>
+@Override
+Конкретная реализация метода save</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    
+    set sc=$$$OK
+    #dim userDto as uh.dto.User=dto
+    set user=##class(uh.data.Users).%New()
+    set user.firstName=userDto.firstName
+    set user.lastName=userDto.lastName
+    set user.dob=userDto.dob
+    set user.email=userDto.email    
+    set sc= user.%Save()
+    quit sc
+]]></Implementation>
+</Method>
+
+<Method name="delete">
+<Description>
+@Override
+Конкретная реализация метода delete</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[
+    set sc=$$$OK
+    #dim userDto as uh.dto.User=dto
+    set sc=##class(uh.data.Users).%DeleteId(userDto.id) 
+    quit sc
+]]></Implementation>
+</Method>
+
+<Method name="update">
+<Description>
+@Override
+Конкретная реализация метода update</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[
+    set sc=$$$OK
+    #dim userDto as uh.dto.User=dto
+    set user=##class(uh.data.Users).%OpenId(userDto.id)
+    //если объект не найден, то возвращаем код соответствующей ошибки (#5809 Object to Load not found)
+    q:('$isobject(user)) $$$ERROR(5809)
+    set user.lastName=userDto.lastName
+    set user.firstName=userDto.firstName
+    set user.dob=userDto.dob
+    set user.email=userDto.email
+    set sc=user.%Save()
+    quit sc
+]]></Implementation>
+</Method>
+
+<Method name="getAllRecord">
+<Description>
+@Override
+Конкретная реализация метода getAllRecord</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    set select="ID as id, TO_CHAR(dob,'dd/mm/yyyy') as dob, email, firstName, lastName" 
+    set from="uh_data.Users"
+    set sql="select "_select_" from "_from
+    quit sql
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.data.Users">
+<Description>
+Хранимы класс, содержащий необходимые поля для сущности User</Description>
+<Super>%Persistent</Super>
+<TimeChanged>63515,42331.786043</TimeChanged>
+<TimeCreated>63508,58152.634472</TimeCreated>
+
+<Property name="firstName">
+<Description>
+Имя     </Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="50"/>
+</Property>
+
+<Property name="lastName">
+<Description>
+Фамилия</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="50"/>
+</Property>
+
+<Property name="dob">
+<Description>
+Дата рождения</Description>
+<Type>%Library.Date</Type>
+<Parameter name="FORMAT" value="4"/>
+</Property>
+
+<Property name="email">
+<Description>
+Email</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN" value="50"/>
+</Property>
+
+<Storage name="Default">
+<Type>%Library.CacheStorage</Type>
+<DataLocation>^uh.data.UsersD</DataLocation>
+<DefaultData>UsersDefaultData</DefaultData>
+<IdLocation>^uh.data.UsersD</IdLocation>
+<IndexLocation>^uh.data.UsersI</IndexLocation>
+<StreamLocation>^uh.data.UsersS</StreamLocation>
+<Data name="UsersDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>firstName</Value>
+</Value>
+<Value name="3">
+<Value>lastName</Value>
+</Value>
+<Value name="4">
+<Value>dob</Value>
+</Value>
+<Value name="5">
+<Value>email</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
+<Class name="uh.dto.User">
+<Description>
+User DTO</Description>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63511,65315.408511</TimeChanged>
+<TimeCreated>63508,59124.150068</TimeCreated>
+
+<Property name="id">
+</Property>
+
+<Property name="firstName">
+</Property>
+
+<Property name="lastName">
+</Property>
+
+<Property name="dob">
+</Property>
+
+<Property name="email">
+</Property>
+</Class>
+
+
+<Class name="uh.dto.msg.Result">
+<Description>
+Result DTO</Description>
+<Import>uh.util.query,uh.util.json</Import>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63570,62518.585742</TimeChanged>
+<TimeCreated>63508,82276.878001</TimeCreated>
+
+<Property name="success">
+<Description>
+статус выполненного действия</Description>
+<Type>%Boolean</Type>
+</Property>
+
+<Property name="message">
+<Description>
+дополнительная информация для клиента</Description>
+</Property>
+
+<Property name="total">
+<Description>
+всего записей в бд</Description>
+</Property>
+
+<Property name="data">
+<Description>
+массив записей</Description>
+</Property>
+
+<Method name="new">
+<Description>
+Вызов конструктора</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>uh.dto.msg.Result</ReturnType>
+<Implementation><![CDATA[
+    set this=..%New()
+    quit this
+]]></Implementation>
+</Method>
+
+<Method name="getSuccessResult">
+<Description>
+Метод возвращает объект uh.dto.msg.Result, если операция была успешно завершена</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>uh.dto.msg.Result</ReturnType>
+<Implementation><![CDATA[
+    #dim this as uh.dto.msg.Result =..new()
+    set this.success="true"
+    quit this
+]]></Implementation>
+</Method>
+
+<Method name="getFailResult">
+<Description>
+Метод возвращает объект uh.dto.msg.Result с текстом ошибки выполнения оперции </Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>message:%String=""</FormalSpec>
+<Implementation><![CDATA[
+    #dim this as uh.dto.msg.Result =..new()
+    set this.success="false"
+    set:(message'="") this.message=message
+    quit this
+]]></Implementation>
+</Method>
+
+<Method name="getSuccessResultList">
+<Description>
+Метод возвращает объект uh.dto.msg.Result с количество всех сущностей в таблице и порцей данных ("от" и "до") </Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>sql:%String,pagination:uh.util.query.dto.Pagination</FormalSpec>
+<ReturnType>uh.dto.msg.Result</ReturnType>
+<Implementation><![CDATA[
+    #dim this as uh.dto.msg.Result =..new()
+    #dim qb as QueryBuilder  =..getQueryBuilder(sql,pagination)
+    set this.success="true"
+    set this.total=qb.count()
+    set this.data=qb.run()  
+    quit this
+]]></Implementation>
+</Method>
+
+<Method name="toJSON">
+<Description>
+Метод сериализирует объект uh.dto.msg.Result в JSON
+@return {String}</Description>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    #dim jb as JsonBuilder=..getJsonBuilder()
+    d jb.addSuccess(..success)
+    if ((..total="")&&(..data="")){
+        d jb.add("message",..message)
+    }
+    else{
+        d jb.add("total",..total)
+        d jb.addRS(..data)
+    }   
+    quit jb.getJsonString()
+]]></Implementation>
+</Method>
+
+<Method name="getQueryBuilder">
+<Description>
+Создание объекта QueryBuilder</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>sql:%String,pagination:uh.util.query.dto.Pagination</FormalSpec>
+<ReturnType>QueryBuilder</ReturnType>
+<Implementation><![CDATA[     q ##class(QueryBuilder).%New(sql, pagination)
+]]></Implementation>
+</Method>
+
+<Method name="getJsonBuilder">
+<Description>
+Создание объекта JsonBuilder</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>JsonBuilder</ReturnType>
+<Implementation><![CDATA[    q ##class(JsonBuilder).%New()
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.dto.msg.ResultFactory">
+<Description>
+Фабрика управления объектом Result</Description>
+<Import>uh.dto.msg,uh.util</Import>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63570,63818.325302</TimeChanged>
+<TimeCreated>63508,84217.448263</TimeCreated>
+
+<Method name="getResult">
+<Description>
+Метод возвращает объект uh.dto.msg.Result в соответствии со статусом выполнения действия</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>sc:%Status</FormalSpec>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[
+    quit:(sc) ..getSuccessMsg()
+    quit:('sc) ..getFailMsg(##class(Log).getErrorText(sc))
+]]></Implementation>
+</Method>
+
+<Method name="getResultList">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>sql:%String,pagination:uh.util.query.dto.Pagination</FormalSpec>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[    quit ##class(Result).getSuccessResultList(sql,pagination)
+]]></Implementation>
+</Method>
+
+<Method name="getSuccessMsg">
+<ClassMethod>1</ClassMethod>
+<ReturnType>uh.dto.msg.Result</ReturnType>
+<Implementation><![CDATA[    q ##class(Result).getSuccessResult()
+]]></Implementation>
+</Method>
+
+<Method name="getFailMsg">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>message:%String=""</FormalSpec>
+<ReturnType>uh.dto.msg.Result</ReturnType>
+<Implementation><![CDATA[    q ##class(Result).getFailResult(message)
+]]></Implementation>
+</Method>
+</Class>
+
+
+
+
+<Class name="uh.service.AbstractService">
+<Description>
+Абстрактный класс, определяющий методы бизнес-уровня</Description>
+<Abstract>1</Abstract>
+<Import>uh.dto.msg</Import>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63520,61291.126026</TimeChanged>
+<TimeCreated>63509,1937.448623</TimeCreated>
+
+<Method name="persist">
+<Description>
+Метод создания новой записи в БД 
+@param dto {Object}
+@return {String}</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>%String</ReturnType>
+</Method>
+
+<Method name="merge">
+<Description>
+Метод редактирования записи в БД
+@param dto {Object}
+@return {String}</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>%String</ReturnType>
+</Method>
+
+<Method name="remove">
+<Description>
+Метод удаления записи с БД
+@param dto {Object}
+@return {String}</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>%String</ReturnType>
+</Method>
+
+<Method name="findAll">
+<Description>
+Метод поиска записей в БД
+@param pagination {Object}
+@return {String}</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pagination:uh.util.query.dto.Pagination</FormalSpec>
+<ReturnType>%String</ReturnType>
+</Method>
+
+<Method name="newResult">
+<Description>
+Метод создания объекта Result</Description>
+<Final>1</Final>
+<ClassMethod>1</ClassMethod>
+<ReturnType>Result</ReturnType>
+<Implementation><![CDATA[    q ##class(Result).%New()
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.service.UserService">
+<Description>
+Класс, реализующий бизнес-логику при создании/редактировании/удалении/поиске записей в таблице Users</Description>
+<Import>uh.dto.msg,uh.dao</Import>
+<Super>uh.service.AbstractService</Super>
+<TimeChanged>63570,74330.249724</TimeChanged>
+<TimeCreated>63509,62506.146204</TimeCreated>
+
+<Method name="findAll">
+<Description>
+@Override</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pagination:uh.util.query.dto.Pagination</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    #dim result as Result=..newResult()
+    set result=##class(UserDAO).findAll(pagination)
+    quit result.toJSON()
+]]></Implementation>
+</Method>
+
+<Method name="merge">
+<Description>
+@Override</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    #dim result as Result=..newResult()
+     // конвертирование формата даты
+    set dto.dob=$zdh(dto.dob,4)
+    set result=##class(UserDAO).merge(dto)
+    quit result.toJSON()
+]]></Implementation>
+</Method>
+
+<Method name="persist">
+<Description>
+@Override</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    #dim result as Result=..newResult()
+    // конвертирование формата даты
+    set dto.dob=$zdh(dto.dob,4)
+    set result=##class(UserDAO).persist(dto)
+    quit result.toJSON()
+]]></Implementation>
+</Method>
+
+<Method name="remove">
+<Description>
+@Override</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dto</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    #dim result as Result=..newResult()
+    set result=##class(UserDAO).remove(dto)
+    quit result.toJSON()
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.test.Populator">
+<Description>
+Класс для генерации тестовых данных</Description>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63523,43218.977559</TimeChanged>
+<TimeCreated>63508,54573.561126</TimeCreated>
+
+<Method name="main">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    set sc=$$$OK
+    write "("_$zdt($h,3)_") : "_"start data generation",!
+    try{
+        for i=0:1:100{
+            set user=##class(uh.data.Users).%New()
+            set user.lastName=..getLastName()
+            set user.firstName=..getFirstName()
+            set user.dob=..getBOD()
+            set user.email=..getEmail(user.lastName,user.firstName)
+            set sc=user.%Save()
+        }
+        if (sc){
+            write "("_$zdt($h,3)_") : "_"data generation completed successfully",!
+        }
+    }catch ex{
+        #dim ex as %Exception.AbstractException         
+        s sc=ex.AsStatus()
+        write "("_$zdt($h,3)_") : "_"data generation failed"_"["_ex.Location_"|"_ex.Name_"|"_ex.Data_"]",!          
+    }
+    quit sc
+]]></Implementation>
+</Method>
+
+<Method name="showData">
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+   set sql = 2
+    set statement = ##class(%SQL.Statement).%New()
+    set sql(1) = "select top 5 %ID as id, lastName, firstName, TO_CHAR(dob,'dd/mm/yyyy') as dob,email"
+    set sql(2) = "from uh_data.Users"    
+    set sc = statement.%Prepare(.sql)
+    set rs=statement.%Execute()    
+    do rs.%Display()
+]]></Implementation>
+</Method>
+
+<Method name="getLastName">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[    quit $replace(##class(%Library.PopulateUtils).LastName(),"'","")
+]]></Implementation>
+</Method>
+
+<Method name="getFirstName">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[    quit $replace(##class(%Library.PopulateUtils).FirstName(),"'","")
+]]></Implementation>
+</Method>
+
+<Method name="getEmail">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>lastName:%String,firstName:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[    quit firstName_lastName_"@gmail.com"
+]]></Implementation>
+</Method>
+
+<Method name="getBOD">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Date</ReturnType>
+<Implementation><![CDATA[    quit ##class(%Library.PopulateUtils).Date()
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.util.Log">
+<Description>
+Простой класс для логирования</Description>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63520,79651.272806</TimeChanged>
+<TimeCreated>63508,84340.673255</TimeCreated>
+
+<Method name="debug">
+<Description>
+метод записывает в глобал текст ошибки</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>ex:%Exception.AbstractException</FormalSpec>
+<Implementation><![CDATA[    s ^glbError($zdt($h,3))=ex.Name
+]]></Implementation>
+</Method>
+
+<Method name="getErrorText">
+<Description>
+метод возвращает текст ошибки 
+@param sc {Object} - %Status</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>sc</FormalSpec>
+<Implementation><![CDATA[
+    s text = $P($System.Status.GetOneErrorText(sc),">",1)
+    s text = $REPLACE(text,"""","\""")
+    s text = $REPLACE(text,$C(13,10),"\n")
+    q " "_text
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.util.json.JsonBuilder">
+<Description>
+Класс для генерации JSON</Description>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63520,77752.393832</TimeChanged>
+<TimeCreated>63509,43729.381618</TimeCreated>
+
+<Property name="jsonStart">
+<Type>%String</Type>
+<Final>1</Final>
+<InitialExpression>"{"</InitialExpression>
+<Private>1</Private>
+</Property>
+
+<Property name="jsonEnd">
+<Type>%String</Type>
+<Final>1</Final>
+<InitialExpression>"}"</InitialExpression>
+<Private>1</Private>
+</Property>
+
+<Property name="jsonBody">
+<Private>1</Private>
+</Property>
+
+<Method name="addSuccess">
+<Description>
+Метод добавляет в JSON объект поле success и его значение</Description>
+<FormalSpec>value:%Boolean</FormalSpec>
+<Implementation><![CDATA[
+    set data="""success"""_":"_value
+    d ..setJsonBody(data)
+]]></Implementation>
+</Method>
+
+<Method name="add">
+<Description>
+Метод добавляет в JSON объект новое свойство и его значение</Description>
+<FormalSpec>property:%String,value:%String</FormalSpec>
+<Implementation><![CDATA[
+    set data=..addToJson(property,value)
+    d ..setJsonBody(data)
+]]></Implementation>
+</Method>
+
+<Method name="addToJson">
+<FormalSpec>property:%String,value:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[    quit """"_property_""""_":"_""""_value_""""
+]]></Implementation>
+</Method>
+
+<Method name="getJsonString">
+<Description>
+Метод возвращает строку в формате JSON</Description>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[    quit ..jsonStart_..jsonBody_..jsonEnd
+]]></Implementation>
+</Method>
+
+<Method name="addRS">
+<Description>
+Метод добавляет в JSON объект массив записей</Description>
+<FormalSpec>rs:%ResultSet</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    s data=..convertRSToJson(rs)
+    d ..setJsonBody(data)
+    
+    quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="getJsonBody">
+<Private>1</Private>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    set jsonBody=..jsonBody
+    set:(jsonBody'="") jsonBody=jsonBody_","
+    quit jsonBody
+]]></Implementation>
+</Method>
+
+<Method name="setJsonBody">
+<FormalSpec>data:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    set jsonBody=..getJsonBody()
+    set ..jsonBody=jsonBody_data    
+    q $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="convertRSToJson">
+<Description>
+Метод сериализирует %ResultSet в JSON строку</Description>
+<FormalSpec>rs:%ResultSet</FormalSpec>
+<Private>1</Private>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    s result="""data"":["
+     try{
+         set count= rs.%GetMetadata().columnCount
+         set inc=0
+         while(rs.Next()){
+             set result=result_"{"
+             for i=1:1:count{           
+                set colHead=rs.%GetMetadata().columns.GetAt(i).label
+                set data=rs.Data(colHead)
+                set value=..checkWhitespace(data)
+                set result=result_..addToJson(colHead,value)_","                                        
+            }
+            //удаляем крайнюю запятую
+            s:($E(result,*,*)=",") $E(result,*,*)=""
+            set result=result_"},"          
+        }
+        s:($E(result,*,*)=",") $E(result,*,*)=""
+        s result=result_"]"     
+    }catch ex{
+        #dim ex as %Exception.AbstractException
+        w ex.Location_"|"_ex.Name_"|"_ex.Data   
+    }
+    
+    q result
+]]></Implementation>
+</Method>
+
+<Method name="checkWhitespace">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>data</FormalSpec>
+<Implementation><![CDATA[
+    s data=$REPLACE(data,"""","\""")
+    s data=$REPLACE(data,"""","\'")
+    s data=$REPLACE(data,$C(10),"\n")
+    s data=$REPLACE(data,$C(13),"\n")
+    s data=$REPLACE(data,$C(9)," ")
+    s data=$REPLACE(data,$C(5)," ")
+        
+    q data
+]]></Implementation>
+</Method>
+
+<Method name="convertJsonToObject">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>jsonData,dto</FormalSpec>
+<Implementation><![CDATA[
+    do ##class(%ZEN.Auxiliary.jsonProvider).%ConvertJSONToObject(jsonData,dto,.result,1)
+    quit result
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.util.query.QueryBuilder">
+<Description>
+Класс для подготовки и выполнения SQL выражений</Description>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63520,79173.516155</TimeChanged>
+<TimeCreated>63509,43524.837078</TimeCreated>
+
+<Property name="sql">
+<Description>
+sql выражение</Description>
+</Property>
+
+<Property name="start">
+<Description>
+пагинация: "с"</Description>
+</Property>
+
+<Property name="limit">
+<Description>
+пагинация: "по"</Description>
+</Property>
+
+<Method name="buildSQL">
+<Description>
+метод формирует конечное sql выражение</Description>
+<FormalSpec>onlyCount:%Boolean=0</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+    if (onlyCount=1){
+        //посчитать  кол-во записей в таблице
+        quit "select count(1) as cnt from ("_..sql_")"
+    }else{
+        set vid=..start
+        // вернуть порцию данных "с"- "по"
+        quit "select * from ( select top "_(..start+..limit)_" * from ("_..sql_")) where  %vid >"_vid       
+    }
+]]></Implementation>
+</Method>
+
+<Method name="run">
+<Description>
+метод подготавливает и выполняет sql выражение</Description>
+<FormalSpec>onlyCount:%Boolean=0</FormalSpec>
+<ReturnType>%SQL.StatementResult</ReturnType>
+<Implementation><![CDATA[
+    s sql=""
+    
+    if (onlyCount=1){
+        set sql=..buildSQL(1)       
+    }else{      
+        set sql=..buildSQL()        
+    }
+    set rs = ##class(%ResultSet).%New("%DynamicQuery:SQL")
+        set sc = rs.Prepare(sql)
+        set sc=rs.Execute()         
+        throw:$system.Status.IsError(sc) ##class(%Exception.General).%New($System.Status.GetOneErrorText(sc))   
+    quit rs
+]]></Implementation>
+</Method>
+
+<Method name="count">
+<Description>
+метод возвращает кол-во записей в таблице</Description>
+<Implementation><![CDATA[
+    set rs=..run(1)
+    do rs.%Next()
+    set cnt = rs.cnt
+    quit cnt
+]]></Implementation>
+</Method>
+
+<Method name="%OnNew">
+<Description>
+конструктор</Description>
+<FormalSpec>sql:%String,pagination:uh.util.query.dto.Pagination</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    set ..sql=sql
+    set ..start=pagination.start
+    set ..limit=pagination.limit
+    Quit $$$OK
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.util.query.dto.Pagination">
+<Description>
+DTO для передачи в sql границ выборки данных</Description>
+<Super>%RegisteredObject</Super>
+<TimeChanged>63520,79419.030709</TimeChanged>
+<TimeCreated>63509,2258.137719</TimeCreated>
+
+<Property name="start">
+<Type>%Integer</Type>
+</Property>
+
+<Property name="limit">
+<Type>%Integer</Type>
+</Property>
+
+<Property name="page">
+<Type>%Integer</Type>
+</Property>
+</Class>
+
+
+<Class name="uh.web.AbstractHandler">
+<Description>
+Абстрактный класс, определяющий CRUD-операции над сущностями в БД</Description>
+<Abstract>1</Abstract>
+<Super>HttpServlet</Super>
+<TimeChanged>63571,38854.262589</TimeChanged>
+<TimeCreated>63509,63486.182903</TimeCreated>
+
+<Method name="doPost">
+<Description>
+метод для обработки POST команд</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+</Method>
+
+<Method name="doGet">
+<Description>
+Template method для обработки GET команд</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+</Method>
+
+<Method name="findAll">
+<Description>
+Метод поиска записей в БД</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+</Method>
+
+<Method name="persist">
+<Description>
+Метод создания новой записи в БД</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+</Method>
+
+<Method name="merge">
+<Description>
+Метод редактирования записи в БД</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+</Method>
+
+<Method name="remove">
+<Description>
+Метод удаления записи с БД</Description>
+<Abstract>1</Abstract>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+</Method>
+</Class>
+
+
+<Class name="uh.web.HttpServlet">
+<Description>
+Простой сервлет обрабатывающий запросы от клиента</Description>
+<Super>%CSP.Page</Super>
+<TimeChanged>63571,38802.538832</TimeChanged>
+<TimeCreated>63508,53871.529137</TimeCreated>
+
+<Parameter name="HTTPINTERNALSERVERERROR">
+<Default>500 Internal Server Error</Default>
+</Parameter>
+
+<Parameter name="HTTPERRORNOTIMPLEMENTED">
+<Default>501 Not Implemented</Default>
+</Parameter>
+
+<Parameter name="HTTPBADREQUEST">
+<Default>400 Bad Request</Default>
+</Parameter>
+
+<Parameter name="JSCONTENTTYPE">
+<Default>text/javascript</Default>
+</Parameter>
+
+<Parameter name="HTMLCONTENTYPE">
+<Default>text/html</Default>
+</Parameter>
+
+<Parameter name="XMLCONTENTYPE">
+<Default>text/xml</Default>
+</Parameter>
+
+<Method name="OnPage">
+<Description>
+Диспетчер HTTP команд и обработка исключений</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    s sc = $$$OK
+    
+    #dim %request As %CSP.Request
+    #dim %response As %CSP.Response
+    
+    try {
+        if (%request.Method = "POST") d ..doPost(%request,%response)  
+        if (%request.Method = "GET") d ..doGet(%request,%response)        
+    }
+    catch ex {
+        #dim ex as %Exception.AbstractException         
+        s sc=ex.AsStatus()
+        d ..setResponseError("ServerError",ex)      
+    }   
+    quit sc
+]]></Implementation>
+</Method>
+
+<Method name="OnPreHTTP">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Boolean</ReturnType>
+<Implementation><![CDATA[
+    #dim %request as %CSP.Request
+    #dim %response as %CSP.Response
+        
+    if (%request.Method = "POST") {
+        s %response.ContentType = ..#JSCONTENTTYPE
+        quit 1
+    }
+    if (%request.Method = "GET") {
+        s %response.ContentType = ..#JSCONTENTTYPE
+        quit 1
+    }        
+    s %response.Status = ..#HTTPERRORNOTIMPLEMENTED
+
+    quit 0
+]]></Implementation>
+</Method>
+
+<Method name="doPost">
+<Description>
+Template method для обработки POST команд</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+</Method>
+
+<Method name="doGet">
+<Description>
+Template method для обработки GET команд</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+</Method>
+
+<Method name="setResponseError">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>text="",ex:%Exception.AbstractException="",type=""</FormalSpec>
+<Implementation><![CDATA[
+    s code="", name="",data=""
+    if ($isobject(ex)){
+        s code=$tr(ex.Name,"<>","")
+        s data=ex.Data_" "_ex.Location
+    }
+    
+    &html<{"success": false,"type": "#(type)#","message": "#(text)#","code": "#(code)#","data": "#(data)#"}>
+]]></Implementation>
+</Method>
+</Class>
+
+
+<Class name="uh.web.UserHandler">
+<Description>
+Класс реализующий CRUD-операции над сущностью Users </Description>
+<Import>uh.util.json,uh.service</Import>
+<Super>AbstractHandler</Super>
+<TimeChanged>63571,38894.452683</TimeChanged>
+<TimeCreated>63509,62882.295304</TimeCreated>
+
+<Method name="doPost">
+<Description>
+@Override
+метод для обработки POST команд</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+<Implementation><![CDATA[
+    s action=request.Get("action")
+    if (action="read"){
+        d ..findAll(request,response)
+    }
+    elseif(action="create"){
+        d ..persist(request,response)
+    }
+    elseif(action="update"){
+        d ..merge(request, response)
+    }
+    elseif(action="destroy"){
+        d ..remove(request,response)
+    }
+]]></Implementation>
+</Method>
+
+<Method name="doGet">
+<Description>
+@Override
+метод для обработки GET команд</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+<Implementation><![CDATA[
+    s action=request.Get("action")
+    if (action="read"){
+        d ..findAll(request,response)
+    }
+]]></Implementation>
+</Method>
+
+<Method name="findAll">
+<Description>
+@Override</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+<Implementation><![CDATA[
+    set start=request.Get("start")
+    set limit=request.Get("limit")
+    
+    set pagination=##class(uh.util.query.dto.Pagination).%New()
+    set pagination.limit=limit
+    set pagination.start=start
+    w ##class(UserService).findAll(pagination)
+]]></Implementation>
+</Method>
+
+<Method name="persist">
+<Description>
+@Override</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+<Implementation><![CDATA[
+    set userDto=..getDto(request)
+    w ##class(UserService).persist(userDto)
+]]></Implementation>
+</Method>
+
+<Method name="merge">
+<Description>
+@Override</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+<Implementation><![CDATA[
+    set userDto=..getDto(request)
+    w ##class(UserService).merge(userDto)
+]]></Implementation>
+</Method>
+
+<Method name="remove">
+<Description>
+@Override</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request,response:%CSP.Response</FormalSpec>
+<Implementation><![CDATA[
+    set userDto=..getDto(request)
+    w ##class(UserService).remove(userDto)
+]]></Implementation>
+</Method>
+
+<Method name="getDto">
+<Description>
+Сериализации JSON в объект uh.dto.User</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>request:%CSP.Request</FormalSpec>
+<ReturnType>uh.dto.User</ReturnType>
+<Implementation><![CDATA[
+    set jsonData=request.Get("data")
+    set userDto=##class(uh.dto.User).%New()
+    set userDto=##class(JsonBuilder).convertJsonToObject(jsonData,userDto.%ClassName(1))
+    quit userDto
+]]></Implementation>
+</Method>
+</Class>
+</Export>
